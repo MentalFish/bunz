@@ -1,0 +1,6 @@
+<!-- Toggle Button Atom -->
+<!-- Micro-template for on/off toggle buttons -->
+<button class="btn-control {className}" data-state="{state}">
+    {icon} <span data-i18n="{i18nKey}">{label}</span>
+</button>
+

@@ -1,0 +1,240 @@
+<!--
+@title: Login - Video Conferencing
+-->
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="modal-header text-center">
+            <h1>🎥 <span data-i18n="auth.welcome">Welcome</span></h1>
+            <p data-i18n="auth.loginSubtitle">Sign in to start video conferencing</p>
+        </div>
+
+        <div class="tab-switcher">
+            <button class="tab-btn active" data-tab="login" data-i18n="auth.loginTab">Login</button>
+            <button class="tab-btn" data-tab="signup" data-i18n="auth.signupTab">Sign Up</button>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+
+        <!-- Login Form -->
+        <div id="login-tab" class="tab-content active">
+            <form id="login-form" method="POST" action="#">
+                <div class="form-group">
+                    <label for="login-email" data-i18n="auth.email">Email</label>
+                    <input type="email" id="login-email" name="email" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password" data-i18n="auth.password">Password</label>
+                    <input type="password" id="login-password" name="password" required autocomplete="current-password">
+                </div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="btn-primary" data-i18n="auth.signIn">
+                        Sign In
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signup-tab" class="tab-content">
+            <form id="signup-form" method="POST" action="#">
+                <div class="form-group">
+                    <label for="signup-name" data-i18n="auth.fullName">Full Name</label>
+                    <input type="text" id="signup-name" name="name" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-email" data-i18n="auth.email">Email</label>
+                    <input type="email" id="signup-email" name="email" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-password" data-i18n="auth.password">Password</label>
+                    <input type="password" id="signup-password" name="password" required autocomplete="new-password" minlength="8">
+                </div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="btn-primary" data-i18n="auth.createAccount">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Login/Signup page-specific styles */
+.tab-switcher {
+    display: flex;
+    gap: var(--space-sm);
+    background: var(--background);
+    padding: var(--space-xs);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 0.75rem;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+</style>
+
+<script>
+/**
+ * Login page functionality
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+
+// Init when loaded - use setTimeout to ensure DOM is ready
+function tryInitLoginPage() {
+    if (document.getElementById('login-form')) {
+        initLoginPage();
+    } else {
+        // Retry after a short delay
+        setTimeout(tryInitLoginPage, 50);
+    }
+}
+
+// Listen for modal content loaded
+document.addEventListener('bunz:loaded', tryInitLoginPage);
+document.addEventListener('bunz:modal-content-loaded', tryInitLoginPage);
+
+// Try immediate init (for direct page loads)
+setTimeout(tryInitLoginPage, 10);
+
+function initLoginPage() {
+    console.log('🔧 Initializing login page...');
+    
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`${tab}-tab`)?.classList.add('active');
+            clearMessages();
+        });
+    });
+    
+    // Attach form handlers directly
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    
+    if (loginForm && !loginForm.dataset.initialized) {
+        loginForm.addEventListener('submit', handleLogin);
+        loginForm.dataset.initialized = 'true';
+        console.log('Login form handler attached');
+    }
+    
+    if (signupForm && !signupForm.dataset.initialized) {
+        signupForm.addEventListener('submit', handleSignup);
+        signupForm.dataset.initialized = 'true';
+        console.log('Signup form handler attached');
+    }
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    clearMessages();
+    
+    const data = Object.fromEntries(new FormData(e.target));
+    
+    try {
+        const res = await fetch('/api/auth/sign-in', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        if (!res.ok) return showError(result.error || (window.t ? window.t('auth.loginFailed') : 'Login failed'));
+        
+        showSuccess(window.t ? window.t('auth.loginSuccess') : 'Login successful!');
+        document.dispatchEvent(new CustomEvent('bunz:auth-success', { 
+            detail: { redirectTo: '/dashboard' } 
+        }));
+    } catch (e) {
+        console.error('Login error:', e);
+        showError('An error occurred during login');
+    }
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+    clearMessages();
+    
+    const data = Object.fromEntries(new FormData(e.target));
+    if (data.password.length < 8) return showError(window.t ? window.t('auth.passwordMinLength') : 'Password must be at least 8 characters');
+    
+    try {
+        const res = await fetch('/api/auth/sign-up', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        if (!res.ok) return showError(result.error || (window.t ? window.t('auth.signupFailed') : 'Signup failed'));
+        
+        showSuccess(window.t ? window.t('auth.signupSuccess') : 'Account created successfully!');
+        document.dispatchEvent(new CustomEvent('bunz:auth-success', { 
+            detail: { redirectTo: '/dashboard' } 
+        }));
+    } catch (e) {
+        console.error('Signup error:', e);
+        showError('An error occurred during signup');
+    }
+}
+
+function showError(msg) {
+    const el = document.getElementById('error-message');
+    if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+}
+
+function showSuccess(msg) {
+    const el = document.getElementById('success-message');
+    if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+}
+
+function clearMessages() {
+    ['error-message', 'success-message'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = '';
+            el.style.display = 'none';
+        }
+    });
+}
+</script>

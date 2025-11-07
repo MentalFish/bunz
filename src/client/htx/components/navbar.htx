@@ -1,0 +1,249 @@
+<!-- Global Navigation Component -->
+<nav class="navbar">
+    <div class="navbar-container">
+        <a href="/htx/pages/index.htx#app" class="navbar-brand">
+            🎥 <span data-i18n="nav.brand">BUNZ Conference</span>
+        </a>
+        <div class="navbar-links">
+            <a href="/htx/pages/index.htx#app" data-i18n="nav.home">Home</a>
+            <a href="/htx/pages/dashboard.htx#app" bz-guard="auth" data-i18n="nav.dashboard">Dashboard</a>
+            <a href="/htx/pages/room.htx#app" data-i18n="nav.joinRoom">Join Room</a>
+            <a href="/htx/pages/map.htx#app">Map</a>
+            <a href="/ssr">SSR</a>
+        </div>
+        <div class="navbar-actions">
+            <div class="lang-dropdown">
+                <button class="lang-dropdown-trigger" id="lang-trigger">
+                    <span id="current-lang">EN</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M2 4l4 4 4-4"/>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="lang-menu">
+                    <button class="lang-option" data-lang="en">🇬🇧 English</button>
+                    <button class="lang-option" data-lang="no">🇳🇴 Norsk</button>
+                    <button class="lang-option" data-lang="es">🇪🇸 Español</button>
+                    <button class="lang-option" data-lang="de">🇩🇪 Deutsch</button>
+                    <button class="lang-option" data-lang="fr">🇫🇷 Français</button>
+                </div>
+            </div>
+            <div id="navbar-auth">
+                <button data-action="open-login-modal" class="btn-secondary btn-sm" data-i18n="nav.login">Login</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+/* ========== NAVBAR COMPONENT ========== */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-md) var(--space-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-xl);
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), var(--tertiary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.navbar-links {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+.navbar-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.navbar-links a:hover {
+    color: var(--primary);
+}
+
+/* Auth container - fixed size to prevent layout shift */
+#navbar-auth {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    min-width: 200px; /* Reserve space for user info + logout */
+    height: 40px; /* Fixed height */
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.navbar-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--text);
+    transition: opacity 0.2s;
+}
+
+.navbar-user-info:hover {
+    opacity: 0.8;
+}
+
+.navbar-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--tertiary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.navbar-user-name {
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+/* Language Dropdown */
+.lang-dropdown {
+    position: relative;
+}
+
+.lang-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--surface-light);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lang-dropdown-trigger:hover {
+    background: var(--surface);
+    border-color: var(--primary);
+    transform: none;
+    box-shadow: none;
+}
+
+.lang-dropdown-trigger svg {
+    transition: transform 0.2s;
+}
+
+.lang-dropdown.open .lang-dropdown-trigger svg {
+    transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 150px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.lang-dropdown.open .lang-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    background: transparent;
+    color: var(--text);
+    border: none;
+    border-radius: 0;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.lang-option:first-child {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.lang-option:last-child {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.lang-option:hover {
+    background: var(--surface-light);
+    transform: none;
+    box-shadow: none;
+}
+
+.lang-option.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+}
+
+/* Responsive navbar */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0.75rem var(--space-md);
+    }
+    
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    .navbar-links {
+        display: none; /* Could add hamburger menu */
+    }
+}
+</style>
+

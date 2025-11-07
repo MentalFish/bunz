@@ -1,0 +1,1089 @@
+<!--
+@route: /room/:roomId
+@title: Video Room - Video Conferencing
+-->
+<!-- Room Page Container - Full viewport fit -->
+<div class="room-page-container">
+    <!-- Room Header (Compact) -->
+    <div class="room-header">
+        <div class="flex flex-between">
+            <div>
+                <h2 style="margin: 0; font-size: 1.3rem;">🎥 <span data-i18n="room.title">Video Conference</span></h2>
+            </div>
+            <div class="flex gap-md" style="align-items: center;">
+                <button id="toggle-map" class="btn-secondary btn-sm">🗺️ <span data-i18n="room.showMap">Map</span></button>
+                <button id="toggle-canvas" class="btn-secondary btn-sm">✏️ <span data-i18n="room.draw">Draw</span></button>
+                <span style="color: var(--text-muted); font-size: 0.85rem;" id="room-status">Room: default</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area (Flexible, fills remaining space) -->
+    <div class="room-content-wrapper">
+        <div class="room-content">
+            <!-- Video Grid Section -->
+            <section class="video-section" id="video-section">
+                <div class="video-grid" id="video-grid">
+                    <div class="video-container local" id="local-video-container">
+                        <video id="local-video" autoplay muted playsinline></video>
+                        <div class="video-label" data-i18n="room.localVideo">You (Local)</div>
+                        <button class="presenter-btn" id="make-me-presenter" title="Make me presenter">
+                            📡 <span data-i18n="room.present">Present</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Map Section (Hidden by default) -->
+            <section class="map-section" id="map-section" style="display: none;">
+                <div id="room-map"></div>
+            </section>
+        </div>
+        
+        <!-- Presenter Side Panel (Slides in from right) -->
+        <aside class="presenter-panel" id="presenter-panel">
+            <div class="presenter-header">
+                <h3>📡 <span data-i18n="room.presenterMode">Presenter</span></h3>
+                <button id="end-presenter" class="btn-ghost btn-sm">❌</button>
+            </div>
+            <div class="presenter-container" id="presenter-container"></div>
+        </aside>
+    </div>
+
+    <!-- Controls Bar (Fixed at bottom) -->
+    <div class="room-controls">
+        <div class="flex gap-sm flex-wrap" style="align-items: center;">
+            <button id="start-call" class="btn-primary btn-sm">▶️ <span data-i18n="room.startCall">Start</span></button>
+            <button id="toggle-video" class="btn-secondary btn-sm" disabled>📹 <span data-i18n="room.videoOn">Video</span></button>
+            <button id="toggle-audio" class="btn-secondary btn-sm" disabled>🎤 <span data-i18n="room.audioOn">Audio</span></button>
+            <button id="share-screen" class="btn-secondary btn-sm" disabled>🖥️ <span data-i18n="room.shareScreen">Share</span></button>
+            
+            <!-- Drawing Controls (Hidden by default) -->
+            <div class="flex gap-sm" id="drawing-controls" style="display: none;">
+                <button class="btn-ghost btn-sm" data-tool="pen" title="Pen">✏️</button>
+                <button class="btn-ghost btn-sm" data-tool="eraser" title="Eraser">🧹</button>
+                <button class="btn-ghost btn-sm" data-tool="arrow" title="Arrow">➡️</button>
+                <input type="color" id="canvas-color" value="#6366f1" style="width: 32px; height: 32px; border: none; cursor: pointer; border-radius: var(--radius-sm);">
+                <button id="clear-canvas" class="btn-ghost btn-sm" title="Clear">🗑️</button>
+            </div>
+            
+            <button id="end-call" class="btn-danger btn-sm" disabled>⏹️ <span data-i18n="room.endCall">End</span></button>
+            <span id="status" class="text-muted" style="font-size: 0.85rem; margin-left: auto;" data-i18n="room.statusIdle">Click Start to begin</span>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ============================================================================
+   FULL VIEWPORT FIT - NO SCROLLING
+   ============================================================================ */
+
+/* Main container - fills viewport exactly */
+.room-page-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 150px); /* Account for global header/nav + buffer */
+    max-height: calc(100vh - 150px);
+    overflow: hidden;
+    /* No padding - let global container handle alignment */
+}
+
+/* Header - fixed height */
+.room-header {
+    flex-shrink: 0;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.room-header .flex {
+    align-items: center; /* Ensure vertical centering */
+}
+
+/* Controls - fixed height at bottom */
+.room-controls {
+    flex-shrink: 0;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+/* Content wrapper - fills remaining space between header and controls */
+.room-content-wrapper {
+    flex: 1;
+    display: flex;
+    gap: 1rem;
+    overflow: hidden;
+    min-height: 0; /* Important for flex child scrolling */
+}
+
+/* Main content area - flexible width */
+.room-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0; /* Important for flex child overflow */
+}
+
+/* Video/Map sections - room-specific layout overrides */
+.video-section, .map-section {
+    height: 100%;
+    overflow: hidden;
+    min-height: 0; /* Prevent flex overflow */
+}
+
+/* ============================================================================
+   VIDEO COMPONENTS - Base styles (moved from main.css for room-specific use)
+   ============================================================================ */
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-md);
+}
+
+.video-container {
+    position: relative;
+    background: #000;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    border: 2px solid var(--border);
+}
+
+.video-container.local { border-color: var(--primary); }
+.video-container.remote { border-color: var(--success); }
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 0.75rem var(--space-md);
+    color: white;
+    font-weight: 500;
+}
+
+/* Control groups */
+.control-group {
+    padding: 0.5rem;
+    background: var(--surface-light);
+    border-radius: var(--radius-md);
+}
+
+/* Video grid - room-specific layout overrides */
+.room-page-container .video-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    padding: 1rem;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+}
+
+.room-page-container .video-container {
+    height: fit-content;
+}
+
+.room-page-container .video-label {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Responsive - video grid */
+@media (max-width: 768px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Map container */
+#room-map {
+    width: 100%;
+    height: 100%;
+    background: var(--background);
+}
+
+.map-section {
+    padding: 1rem;
+}
+
+/* ============================================================================
+   PRESENTER PANEL - Slides in, pushes content
+   ============================================================================ */
+
+.presenter-panel {
+    width: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.presenter-mode-active .presenter-panel {
+    width: 45%;
+    min-width: 350px;
+    opacity: 1;
+}
+
+@media (max-width: 1024px) {
+    body.presenter-mode-active .presenter-panel {
+        width: 100%;
+    }
+    body.presenter-mode-active .room-content {
+        display: none;
+    }
+}
+
+.presenter-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-light);
+}
+
+.presenter-header h3 {
+    margin: 0;
+    color: var(--tertiary);
+    font-size: 1rem;
+}
+
+.presenter-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    overflow: hidden;
+    min-height: 0; /* Prevent flex overflow */
+}
+
+.presenter-container .video-container {
+    width: 100%;
+    height: 100%;
+    border: 3px solid var(--tertiary);
+}
+
+/* ============================================================================
+   PRESENTER BUTTON
+   ============================================================================ */
+
+.presenter-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(99, 102, 241, 0.9);
+    color: white;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+}
+
+.video-container:hover .presenter-btn {
+    opacity: 1;
+}
+
+.presenter-btn:hover {
+    background: var(--primary);
+    transform: scale(1.05);
+}
+
+.presenter-btn.active {
+    opacity: 1;
+    background: var(--tertiary);
+}
+
+/* ============================================================================
+   COMPACT BUTTONS - ROOM SPECIFIC ONLY
+   ============================================================================ */
+
+/* Note: .pulse animation is in app.css (global) */
+/* Note: .control-group is in app.css (global) */
+/* Note: .btn-sm and .btn-ghost are in app.css (global) */
+
+/* ============================================================================
+   PREVENT ANY OVERFLOW
+   ============================================================================ */
+
+/* Ensure no unexpected scrollbars */
+.room-page-container * {
+    box-sizing: border-box;
+}
+
+/* Smooth scrolling for video grid */
+.room-page-container .video-grid {
+    scroll-behavior: smooth;
+}
+
+/* Note: Custom scrollbar styles are in app.css (.custom-scrollbar class) */
+</style>
+
+<script>
+/**
+ * Room page functionality
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+// WebRTC and WebSocket logic
+let ws = null;
+let localStream = null;
+let peerConnections = new Map();
+let myId = null;
+const roomId = 'default';
+
+// Expose WebSocket globally for canvas and other modules
+window.getRoomWebSocket = () => ws;
+
+const config = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        // Free public TURN servers for NAT traversal (ngrok, mobile networks, etc.)
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
+    ],
+    iceCandidatePoolSize: 10
+};
+
+// DOM elements
+const localVideo = document.getElementById('local-video');
+const videoGrid = document.getElementById('video-grid');
+const startCallBtn = document.getElementById('start-call');
+const endCallBtn = document.getElementById('end-call');
+const toggleVideoBtn = document.getElementById('toggle-video');
+const toggleAudioBtn = document.getElementById('toggle-audio');
+const statusDiv = document.getElementById('status');
+
+// Update room status display
+function updateRoomStatus(memberCount) {
+    const roomStatus = document.getElementById('room-status');
+    if (roomStatus) {
+        roomStatus.textContent = `Room: ${roomId} | ${memberCount} user${memberCount !== 1 ? 's' : ''}`;
+    }
+}
+
+// Start call
+startCallBtn.addEventListener('click', async () => {
+    try {
+        updateStatus('Getting media devices...');
+        
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 1280, height: 720 },
+            audio: true
+        });
+        
+        localVideo.srcObject = localStream;
+        
+        // Connect WebSocket (use wss:// for https, ws:// for http)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws?room=${roomId}`;
+        console.log('Connecting to WebSocket:', wsUrl);
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            updateStatus('Connected to room');
+            startCallBtn.disabled = true;
+            endCallBtn.disabled = false;
+            toggleVideoBtn.disabled = false;
+            toggleAudioBtn.disabled = false;
+        };
+        
+        ws.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            await handleSignaling(data);
+        };
+        
+        ws.onerror = (error) => {
+            updateStatus('WebSocket error: ' + error);
+        };
+        
+        ws.onclose = () => {
+            updateStatus('Disconnected from room');
+        };
+        
+    } catch (error) {
+        updateStatus('Error: ' + error.message);
+        console.error('Error starting call:', error);
+    }
+});
+
+// End call
+endCallBtn.addEventListener('click', () => {
+    if (ws) ws.close();
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    
+    peerConnections.forEach(pc => pc.close());
+    peerConnections.clear();
+    
+    // Remove remote videos
+    document.querySelectorAll('.video-container.remote').forEach(el => el.remove());
+    
+    localVideo.srcObject = null;
+    startCallBtn.disabled = false;
+    endCallBtn.disabled = true;
+    toggleVideoBtn.disabled = true;
+    toggleAudioBtn.disabled = true;
+    updateStatus('Call ended');
+});
+
+// Toggle video
+toggleVideoBtn.addEventListener('click', () => {
+    const videoTrack = localStream.getVideoTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
+    
+    // Update button state (class-based, no innerHTML!)
+    toggleVideoBtn.classList.toggle('muted', !videoTrack.enabled);
+    toggleVideoBtn.setAttribute('data-state', videoTrack.enabled ? 'on' : 'off');
+    
+    // Update text content using data-i18n
+    const span = toggleVideoBtn.querySelector('span');
+    if (span) {
+        const key = videoTrack.enabled ? 'room.videoOn' : 'room.videoOff';
+        span.setAttribute('data-i18n', key);
+        span.textContent = window.t ? window.t(key) : (videoTrack.enabled ? 'Video On' : 'Video Off');
+    }
+});
+
+// Toggle audio
+toggleAudioBtn.addEventListener('click', () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
+    
+    // Update button state (class-based, no innerHTML!)
+    toggleAudioBtn.classList.toggle('muted', !audioTrack.enabled);
+    toggleAudioBtn.setAttribute('data-state', audioTrack.enabled ? 'on' : 'off');
+    
+    // Update text content using data-i18n
+    const span = toggleAudioBtn.querySelector('span');
+    if (span) {
+        const key = audioTrack.enabled ? 'room.audioOn' : 'room.audioOff';
+        span.setAttribute('data-i18n', key);
+        span.textContent = window.t ? window.t(key) : (audioTrack.enabled ? 'Audio On' : 'Audio Off');
+    }
+});
+
+// Handle signaling messages
+async function handleSignaling(data) {
+    switch (data.type) {
+        case 'room-members':
+            myId = Date.now().toString(); // Simple ID generation
+            // Count includes you + other members
+            const totalMembers = data.members.length + 1;
+            updateStatus(`Connected! ${totalMembers} members`);
+            updateRoomStatus(totalMembers);
+            // Create connections to existing members
+            for (const memberId of data.members) {
+                await createPeerConnection(memberId, true);
+            }
+            break;
+            
+        case 'user-joined':
+            updateStatus(`User joined`);
+            // Update count (estimate based on current connections + 1 for self + 1 for new)
+            updateRoomStatus(peerConnections.size + 2);
+            // Wait for them to create the offer
+            break;
+            
+        case 'user-left':
+            updateStatus(`User left`);
+            removePeerConnection(data.userId);
+            // Update count (current connections + 1 for self)
+            updateRoomStatus(peerConnections.size + 1);
+            break;
+            
+        case 'offer':
+            await handleOffer(data);
+            break;
+            
+        case 'answer':
+            await handleAnswer(data);
+            break;
+            
+        case 'ice-candidate':
+            await handleIceCandidate(data);
+            break;
+    }
+}
+
+// Create peer connection
+async function createPeerConnection(peerId, createOffer) {
+    const pc = new RTCPeerConnection(config);
+    peerConnections.set(peerId, pc);
+    
+    // Add local stream
+    localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+    });
+    
+    // Handle remote stream
+    pc.ontrack = (event) => {
+        addRemoteVideo(peerId, event.streams[0]);
+    };
+    
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            ws.send(JSON.stringify({
+                type: 'ice-candidate',
+                candidate: event.candidate,
+                target: peerId
+            }));
+        }
+    };
+    
+    // Create offer if needed
+    if (createOffer) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({
+            type: 'offer',
+            offer: offer,
+            target: peerId
+        }));
+    }
+    
+    return pc;
+}
+
+// Handle offer
+async function handleOffer(data) {
+    const pc = await createPeerConnection(data.from, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(JSON.stringify({
+        type: 'answer',
+        answer: answer,
+        target: data.from
+    }));
+}
+
+// Handle answer
+async function handleAnswer(data) {
+    const pc = peerConnections.get(data.from);
+    if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+}
+
+// Handle ICE candidate
+async function handleIceCandidate(data) {
+    const pc = peerConnections.get(data.from);
+    if (pc) {
+        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+}
+
+// Add remote video using HTX atom template (HTML-first!)
+async function addRemoteVideo(peerId, stream) {
+    // Remove existing video if any
+    const existing = document.getElementById(`video-${peerId}`);
+    if (existing) existing.remove();
+    
+    // Create video container from atom template - zero createElement!
+    const container = await window.bunzTemplates.createElement('video-item', {
+        peerId: peerId,
+        userName: `User ${peerId.substring(0, 8)}`
+    });
+    
+    // Set up video stream
+    const video = container.querySelector('video');
+    video.srcObject = stream;
+    video.style.pointerEvents = 'none'; // Prevent tap-to-fullscreen on mobile
+    
+    // Set up presenter button event
+    const presenterBtn = container.querySelector('.presenter-btn');
+    presenterBtn.addEventListener('click', () => makePresenter(peerId));
+    
+    videoGrid.appendChild(container);
+}
+
+// Remove peer connection
+function removePeerConnection(peerId) {
+    const pc = peerConnections.get(peerId);
+    if (pc) {
+        pc.close();
+        peerConnections.delete(peerId);
+    }
+    
+    const videoElement = document.getElementById(`video-${peerId}`);
+    if (videoElement) videoElement.remove();
+}
+
+// Update status (text content, no innerHTML!)
+function updateStatus(message) {
+    statusDiv.textContent = message;
+    console.log('Status:', message);
+}
+
+// ============================================================================
+// MAP AND CANVAS FEATURES
+// ============================================================================
+
+let roomState = {
+    currentView: 'video',  // 'video' or 'map'
+    canvasEnabled: false,
+    mapInitialized: false,
+    presenterId: null,      // ID of current presenter
+    isPresenter: false      // Am I the presenter?
+};
+
+// Toggle Map View
+document.getElementById('toggle-map')?.addEventListener('click', async () => {
+    if (roomState.currentView === 'map') {
+        showVideoView();
+    } else {
+        await showMapView();
+    }
+});
+
+// Toggle Canvas Drawing
+document.getElementById('toggle-canvas')?.addEventListener('click', async () => {
+    roomState.canvasEnabled = !roomState.canvasEnabled;
+    const drawingControls = document.getElementById('drawing-controls');
+    const toggleBtn = document.getElementById('toggle-canvas');
+    
+    if (roomState.canvasEnabled) {
+        // Load canvas module if not loaded
+        if (!window.bunzCanvas && window.bunzLoader) {
+            await bunzLoader.load('canvas');
+        }
+        
+        // Show drawing controls
+        if (drawingControls) drawingControls.style.display = 'flex';
+        toggleBtn.classList.add('active');
+        
+        // Create canvas on current view
+        if (window.bunzCanvas) {
+            // Determine the correct target
+            let target;
+            if (roomState.currentView === 'map') {
+                target = '#room-map';
+            } else if (roomState.presenterId) {
+                // If presenter mode is active, draw on presenter's video
+                target = '#presenter-video';
+            } else {
+                // Default to local video
+                target = '#local-video-container';
+            }
+            
+            console.log('Creating canvas on target:', target);
+            bunzCanvas.createCanvas(target, { enabled: true, zIndex: 10 });
+            bunzCanvas.show();
+            updateStatus('✏️ Drawing enabled - click and drag to draw');
+        }
+    } else {
+        // Hide drawing controls
+        if (drawingControls) drawingControls.style.display = 'none';
+        toggleBtn.classList.remove('active');
+        if (window.bunzCanvas) bunzCanvas.hide();
+        updateStatus('Drawing disabled');
+    }
+});
+
+// Screen Share
+document.getElementById('share-screen')?.addEventListener('click', async () => {
+    try {
+        const btn = document.getElementById('share-screen');
+        // Simple screen share using getUserMedia display media
+        if (!window.screenStream) {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: { mediaSource: 'screen' }
+            });
+            
+            window.screenStream = screenStream;
+            // Update button text (no innerHTML!)
+            const span = btn.querySelector('span');
+            if (span) {
+                span.setAttribute('data-i18n', 'room.stopSharing');
+                span.textContent = window.t ? window.t('room.stopSharing') : 'Stop Sharing';
+            }
+            
+            // Replace video track in all peer connections
+            const screenTrack = screenStream.getVideoTracks()[0];
+            peerConnections.forEach(pc => {
+                const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                if (sender) sender.replaceTrack(screenTrack);
+            });
+            
+            // When user stops sharing via browser UI
+            screenTrack.onended = () => {
+                stopScreenShare();
+            };
+            
+            updateStatus('🖥️ Screen sharing started');
+        } else {
+            stopScreenShare();
+        }
+    } catch (error) {
+        console.error('Screen share error:', error);
+        updateStatus('❌ Screen share failed: ' + error.message);
+    }
+});
+
+function stopScreenShare() {
+    if (window.screenStream) {
+        window.screenStream.getTracks().forEach(track => track.stop());
+        window.screenStream = null;
+        
+        // Restore camera track
+        const videoTrack = localStream.getVideoTracks()[0];
+        peerConnections.forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+            if (sender) sender.replaceTrack(videoTrack);
+        });
+        
+        const btn = document.getElementById('share-screen');
+        // Update button text (no innerHTML!)
+        const span = btn.querySelector('span');
+        if (span) {
+            span.setAttribute('data-i18n', 'room.shareScreen');
+            span.textContent = window.t ? window.t('room.shareScreen') : 'Share Screen';
+        }
+        updateStatus('Screen sharing stopped');
+    }
+}
+
+// Drawing Tool Selection
+document.querySelectorAll('[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tool = btn.getAttribute('data-tool');
+        if (window.bunzCanvas) {
+            bunzCanvas.setTool(tool);
+        }
+        
+        // Update active state
+        document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+
+// Color Picker
+document.getElementById('canvas-color')?.addEventListener('change', (e) => {
+    if (window.bunzCanvas) {
+        bunzCanvas.setColor(e.target.value);
+    }
+});
+
+// Clear Canvas
+document.getElementById('clear-canvas')?.addEventListener('click', () => {
+    if (window.bunzCanvas) {
+        bunzCanvas.clear();
+        // Broadcast clear to other users
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'canvas-clear' }));
+        }
+    }
+});
+
+// Show Map View
+async function showMapView() {
+    if (!roomState.mapInitialized) {
+        // Load map module
+        if (!window.bunzMap && window.bunzLoader) {
+            await bunzLoader.load('map');
+        }
+        
+        // Initialize map
+        if (window.bunzMap) {
+            await bunzMap.init('room-map', {
+                center: [10.7522, 59.9139], // Oslo, Norway
+                zoom: 12
+            });
+            roomState.mapInitialized = true;
+            updateStatus('🗺️ Map loaded');
+        }
+    }
+    
+    // Switch view
+    document.getElementById('video-section').style.display = 'none';
+    document.getElementById('map-section').style.display = 'block';
+    roomState.currentView = 'map';
+    
+    const toggleBtn = document.getElementById('toggle-map');
+    // Update button text (no innerHTML!)
+    const span = toggleBtn.querySelector('span');
+    if (span) {
+        span.setAttribute('data-i18n', 'room.showVideo');
+        span.textContent = window.t ? window.t('room.showVideo') : 'Video';
+    }
+    
+    // If canvas is enabled, recreate on map
+    if (roomState.canvasEnabled && window.bunzCanvas) {
+        bunzCanvas.createCanvas('#room-map', { enabled: true, zIndex: 10 });
+        bunzCanvas.show();
+    }
+}
+
+// Show Video View
+function showVideoView() {
+    document.getElementById('video-section').style.display = 'block';
+    document.getElementById('map-section').style.display = 'none';
+    roomState.currentView = 'video';
+    
+    const toggleBtn = document.getElementById('toggle-map');
+    // Update button text (no innerHTML!)  
+    const span = toggleBtn.querySelector('span');
+    if (span) {
+        span.setAttribute('data-i18n', 'room.showMap');
+        span.textContent = window.t ? window.t('room.showMap') : 'Map';
+    }
+    
+    // If canvas is enabled, recreate on appropriate target
+    if (roomState.canvasEnabled && window.bunzCanvas) {
+        const target = roomState.presenterId ? '#presenter-video' : '#local-video-container';
+        bunzCanvas.createCanvas(target, { enabled: true, zIndex: 10 });
+        bunzCanvas.show();
+    }
+}
+
+// Listen for canvas and map WebSocket messages
+// Enhance the handleSignaling function to include canvas and map events
+const originalHandleSignaling = handleSignaling;
+handleSignaling = async function(data) {
+    // Handle existing events
+    await originalHandleSignaling(data);
+    
+    // Handle canvas events
+    if (data.type === 'canvas-draw' && window.bunzCanvas) {
+        bunzCanvas.handleRemoteDrawing(data);
+    }
+    
+    if (data.type === 'canvas-clear' && window.bunzCanvas) {
+        bunzCanvas.ctx?.clearRect(0, 0, bunzCanvas.canvas.width, bunzCanvas.canvas.height);
+        bunzCanvas.drawingHistory = [];
+    }
+    
+    // Handle map avatar positions
+    if (data.type === 'avatar-position' && window.bunzMap) {
+        bunzMap.addAvatar(data.userId, data.lng, data.lat, {
+            label: data.userId.substring(0, 2).toUpperCase(),
+            name: `User ${data.userId.substring(0, 8)}`
+        });
+    }
+};
+
+// Enable screen share button when call starts
+const originalStartCallHandler = startCallBtn.onclick;
+startCallBtn.addEventListener('click', () => {
+    // Enable share screen button after call starts
+    setTimeout(() => {
+        const shareBtn = document.getElementById('share-screen');
+        if (shareBtn) shareBtn.disabled = false;
+    }, 1000);
+});
+
+// Cleanup on page navigation
+document.addEventListener('bunz:beforeSwap', () => {
+    if (window.screenStream) {
+        window.screenStream.getTracks().forEach(track => track.stop());
+    }
+    if (window.bunzMap) {
+        bunzMap.destroy();
+    }
+    if (window.bunzCanvas) {
+        bunzCanvas.hide();
+    }
+});
+
+// ============================================================================
+// PRESENTER MODE
+// ============================================================================
+
+// Make user presenter (local or remote)
+function makePresenter(peerId) {
+    roomState.presenterId = peerId;
+    roomState.isPresenter = (peerId === myId || peerId === 'local');
+    
+    // Broadcast presenter change
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'set-presenter',
+            presenterId: peerId
+        }));
+    }
+    
+    enterPresenterMode(peerId);
+    const isLocal = (peerId === myId || peerId === 'local');
+    updateStatus(`📡 ${isLocal ? 'You are' : 'User ' + peerId.substring(0, 8) + ' is'} now presenting`);
+}
+
+// Enter presenter mode
+function enterPresenterMode(peerId) {
+    const presenterPanel = document.getElementById('presenter-panel');
+    const presenterContainer = document.getElementById('presenter-container');
+    
+    if (!presenterPanel || !presenterContainer) return;
+    
+    // Get the video element
+    let videoElement, labelText;
+    const isLocalPresenter = (peerId === myId || peerId === 'local');
+    
+    if (isLocalPresenter) {
+        videoElement = document.getElementById('local-video').cloneNode(true);
+        videoElement.srcObject = localStream;
+        labelText = 'You (Presenting)';
+    } else {
+        const container = document.getElementById(`video-${peerId}`);
+        if (!container) {
+            console.warn('Presenter video container not found:', peerId);
+            return;
+        }
+        
+        videoElement = container.querySelector('video').cloneNode(true);
+        const existingVideo = container.querySelector('video');
+        videoElement.srcObject = existingVideo.srcObject;
+        labelText = `User ${peerId.substring(0, 8)} (Presenting)`;
+    }
+    
+    // Create presenter container content
+    const presenterVideoContainer = document.createElement('div');
+    presenterVideoContainer.className = 'video-container presenter';
+    presenterVideoContainer.id = 'presenter-video';
+    
+    videoElement.id = 'presenter-video-element';
+    videoElement.autoplay = true;
+    videoElement.playsinline = true;
+    videoElement.muted = isLocalPresenter; // Mute local to prevent feedback
+    
+    const label = document.createElement('div');
+    label.className = 'video-label';
+    label.textContent = labelText;
+    
+    presenterVideoContainer.appendChild(videoElement);
+    presenterVideoContainer.appendChild(label);
+    
+    // Clear and populate presenter container
+    presenterContainer.innerHTML = '';
+    presenterContainer.appendChild(presenterVideoContainer);
+    
+    // Activate presenter mode - CSS handles the animation and layout push
+    document.body.classList.add('presenter-mode-active');
+    
+    // Update presenter buttons
+    document.querySelectorAll('.presenter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-peer-id') === peerId) {
+            btn.classList.add('active');
+        }
+    });
+    
+    if (isLocalPresenter) {
+        const localBtn = document.getElementById('make-me-presenter');
+        if (localBtn) localBtn.classList.add('active');
+    }
+    
+    // Auto-enable drawing on presenter's video (wait for animation)
+    setTimeout(() => {
+        if (!roomState.canvasEnabled) {
+            document.getElementById('toggle-canvas')?.click();
+        } else {
+            // Re-create canvas on presenter video
+            if (window.bunzCanvas) {
+                bunzCanvas.createCanvas('#presenter-video', { enabled: true, zIndex: 10 });
+                bunzCanvas.show();
+            }
+        }
+    }, 500);
+}
+
+// Exit presenter mode
+function exitPresenterMode() {
+    roomState.presenterId = null;
+    roomState.isPresenter = false;
+    
+    // Deactivate presenter mode - CSS handles the slide-out animation
+    document.body.classList.remove('presenter-mode-active');
+    
+    // Clear presenter buttons
+    document.querySelectorAll('.presenter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Broadcast presenter end
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'set-presenter',
+            presenterId: null
+        }));
+    }
+    
+    // Disable canvas if it was auto-enabled
+    if (roomState.canvasEnabled) {
+        document.getElementById('toggle-canvas')?.click();
+    }
+    
+    updateStatus('Presenter mode ended');
+}
+
+// Setup presenter mode handlers
+document.getElementById('make-me-presenter')?.addEventListener('click', () => {
+    // Use actual WebSocket ID, not 'local'
+    makePresenter(myId || 'local');
+});
+
+document.getElementById('end-presenter')?.addEventListener('click', () => {
+    exitPresenterMode();
+});
+
+// Update handleSignaling to include presenter events
+const _originalHandleSignaling = handleSignaling;
+handleSignaling = async function(data) {
+    await _originalHandleSignaling(data);
+    
+    // Handle presenter assignment
+    if (data.type === 'set-presenter') {
+        if (data.presenterId) {
+            roomState.presenterId = data.presenterId;
+            enterPresenterMode(data.presenterId);
+        } else {
+            exitPresenterMode();
+        }
+    }
+};
+
+// Fixi event listeners for debugging
+document.addEventListener('fx:before', (e) => {
+    console.log('Fixi request starting:', e.detail);
+});
+
+document.addEventListener('fx:after', (e) => {
+    console.log('Fixi request completed:', e.detail);
+});
+
+document.addEventListener('fx:error', (e) => {
+    console.error('Fixi error:', e.detail);
+});
+
+</script>

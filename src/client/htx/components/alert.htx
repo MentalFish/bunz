@@ -1,0 +1,5 @@
+<!-- Reusable Alert Component -->
+<div class="alert" role="alert">
+    <slot></slot>
+</div>
+

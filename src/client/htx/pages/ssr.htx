@@ -1,0 +1,42 @@
+<!--
+@title: SSR Test - BUNZ Conference
+@description: Server-side rendering test page
+-->
+<div class="ssr-test-page">
+    <header class="mb-4">
+        <h1>SSR Test Page</h1>
+        <p class="text-muted">This page demonstrates server-side rendering</p>
+    </header>
+    
+    <section class="panel">
+        <h2 class="mb-3">Server-Side Rendered Content</h2>
+        <p style="font-size: 1.25rem; line-height: 1.6;">
+            This is content, only rendered via SSR
+        </p>
+        
+        <div class="mt-4 p-3" style="background: var(--surface-light); border-radius: var(--radius-md); border-left: 4px solid var(--success);">
+            <p><strong>✅ SSR Working!</strong></p>
+            <p class="text-muted mt-2" style="font-size: 0.875rem;">
+                If you can see this content immediately on page load without any client-side JavaScript loading, 
+                then server-side rendering is functioning correctly.
+            </p>
+        </div>
+        
+        <div class="mt-4">
+            <p class="text-muted" style="font-size: 0.875rem;">
+                <strong>How to verify SSR:</strong><br>
+                1. View page source (Cmd+U or Ctrl+U)<br>
+                2. Look for "This is content, only rendered via SSR" in the HTML<br>
+                3. It should be directly in the &lt;div id="app"&gt; content, not loaded by JavaScript
+            </p>
+        </div>
+    </section>
+</div>
+
+<style>
+.ssr-test-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+</style>
+

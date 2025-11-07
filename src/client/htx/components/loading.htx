@@ -1,0 +1,6 @@
+<!-- Reusable Loading Component -->
+<div class="loading-screen">
+    <div class="loading"></div>
+    <p class="text-muted mt-2"><slot>Loading...</slot></p>
+</div>
+

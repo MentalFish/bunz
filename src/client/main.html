@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BUNZ - A minimal HTML-first framework for building reactive web applications with WebRTC video conferencing. No build step, pure HTML components.">
+    <meta name="keywords" content="BUNZ, HTML-first, WebRTC, video conferencing, Bun.js, web framework">
+    <meta name="author" content="BUNZ Framework">
+    <title>BUNZ - Video Conferencing</title>
+    <link rel="stylesheet" href="/main.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎥</text></svg>">
+</head>
+<body>
+    <!-- Skip to main content link (first in tab order) -->
+    <a href="#app" class="skip-link">Skip to main content</a>
+    
+    <!-- Global Navigation (Loaded from HTX component) -->
+    <div id="bunz-navbar"></div>
+
+    <!-- Main App Container (Content swaps here, navbar stays) -->
+    <main class="container">
+        <div id="app">
+            <!-- BUNZ page content will be loaded here -->
+        </div>
+    </main>
+
+    <!-- Global Modal Container (HTX component will be loaded here) -->
+    <div id="bunz-modal" class="modal">
+        <!-- Modal content loaded from /htx/components/modal.htx -->
+    </div>
+
+    <!-- ========================================
+         CRITICAL PATH (1 bundled script!)
+         ======================================== -->
+    <script src="/main.js" defer></script>          <!-- Bundled: loader + lifecycle + core + routing -->
+    
+    <!-- ========================================
+         DEFERRED (Non-blocking, load after DOM)
+         ======================================== -->
+    <script src="/js/ui/navbar.js" defer></script>
+    <script src="/js/init.js" defer></script>
+    
+    <!-- ========================================
+         LAZY-LOADED (Load on demand via bunzLoader)
+         All other modules load when needed:
+         - scripts.js    (loaded when HTX with <script> tag)
+         - errors.js     (loaded when error occurs)
+         - state.js      (loaded when page uses state)
+         - cache.js      (loaded when page uses cache)
+         - forms.js      (loaded when form exists)
+         - a11y.js       (loaded when accessibility features used)
+         - templates.js  (loaded when atoms needed)
+         - components.js (loaded when component requested)
+         - modal.js      (loaded when first modal opens)
+         - toast.js      (loaded when first toast shown)
+         - cookies.js    (loaded on first visit)
+         - i18n.js       (loaded when language changed)
+         - webrtc.js     (loaded on /room or /meeting pages)
+         - map.js        (loaded on /room or /meeting pages)
+         - canvas.js     (loaded when drawing enabled)
+         ======================================== -->
+    
+    <!-- Lazy-load i18n module if not default language -->
+    <script>
+      (function() {
+        const savedLang = localStorage.getItem('bunz-lang');
+        console.log('📍 Checking saved language:', savedLang);
+        if (savedLang && savedLang !== 'en') {
+          // Non-default language, load i18n module immediately
+          console.log('🌍 Will load i18n for language:', savedLang);
+          if (window.bunzLoader) {
+            bunzLoader.load('i18n');
+          } else {
+            // Loader not ready yet, retry
+            setTimeout(() => {
+              if (window.bunzLoader) bunzLoader.load('i18n');
+            }, 100);
+          }
+        }
+      })();
+    </script>
+</body>
+</html>

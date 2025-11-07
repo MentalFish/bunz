@@ -1,0 +1,5 @@
+<!-- Reusable Card Component -->
+<div class="card">
+    <slot></slot>
+</div>
+

@@ -1,0 +1,5 @@
+<!-- Reusable Empty State Component -->
+<div class="empty-state">
+    <h3 class="text-muted"><slot>No items found</slot></h3>
+</div>
+

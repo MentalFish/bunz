@@ -1,0 +1,16 @@
+<!--
+@title: Page Not Found - Video Conferencing
+-->
+<!-- 404 Error Content -->
+<div class="container full-height flex flex-center">
+    <div class="text-center">
+        <h1 class="text-huge mb-3">404</h1>
+        <h2 class="mb-2">Page Not Found</h2>
+        <p class="text-muted mb-3">The page you're looking for doesn't exist.</p>
+        <div class="flex flex-center gap-md">
+            <a href="/" class="btn-primary">Go Home</a>
+            <button onclick="history.back()" class="btn-secondary">Go Back</button>
+        </div>
+    </div>
+</div>
+

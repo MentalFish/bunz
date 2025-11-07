@@ -1,0 +1,634 @@
+<!--
+@route: /meeting/:meetingId
+@title: Collaborative Meeting - Video Conferencing
+-->
+<!-- Collaborative Meeting Room -->
+<div class="meeting-container">
+    <header class="meeting-header flex flex-between mb-3">
+        <div>
+            <h1>🎥 <span data-i18n="meeting.title">Collaborative Meeting</span></h1>
+            <p class="text-muted" id="meeting-info">Loading meeting info...</p>
+        </div>
+        <div class="flex gap-md">
+            <button id="toggle-view" class="btn-secondary btn-sm">
+                📊 Grid View
+            </button>
+            <button id="toggle-map" class="btn-secondary btn-sm">
+                🗺️ Map
+            </button>
+            <button id="toggle-canvas" class="btn-secondary btn-sm">
+                ✏️ Draw
+            </button>
+        </div>
+    </header>
+    
+    <!-- Main Content Area -->
+    <div class="meeting-content">
+        <!-- Video Grid -->
+        <section class="video-section" id="video-section">
+            <div class="video-grid" id="video-grid">
+                <div class="video-container local" id="local-video-container">
+                    <video id="local-video" autoplay muted playsinline></video>
+                    <div class="video-label">You (Local)</div>
+                    <!-- Canvas overlay for video -->
+                    <div id="local-canvas-target" style="position: relative; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Map Section (Hidden by default) -->
+        <section class="map-section" id="map-section" style="display: none;">
+            <div id="meeting-map" style="width: 100%; height: 600px; position: relative; border-radius: var(--radius-lg); overflow: hidden;"></div>
+        </section>
+    </div>
+    
+    <!-- Controls -->
+    <section class="meeting-controls panel">
+        <div class="flex flex-center gap-md flex-wrap">
+            <!-- Media Controls -->
+            <div class="control-group flex gap-sm">
+                <button id="start-call" class="btn-primary">
+                    ▶️ <span data-i18n="meeting.startCall">Start Call</span>
+                </button>
+                <button id="toggle-video" class="btn-secondary" disabled>
+                    📹 <span data-i18n="meeting.videoOn">Video</span>
+                </button>
+                <button id="toggle-audio" class="btn-secondary" disabled>
+                    🎤 <span data-i18n="meeting.audioOn">Audio</span>
+                </button>
+                <button id="share-screen" class="btn-secondary" disabled>
+                    🖥️ <span data-i18n="meeting.shareScreen">Share Screen</span>
+                </button>
+            </div>
+            
+            <!-- Drawing Controls (Hidden by default) -->
+            <div class="control-group flex gap-sm" id="drawing-controls" style="display: none;">
+                <button class="btn-ghost" data-tool="pen" title="Pen">✏️</button>
+                <button class="btn-ghost" data-tool="eraser" title="Eraser">🧹</button>
+                <button class="btn-ghost" data-tool="arrow" title="Arrow">➡️</button>
+                <input type="color" id="canvas-color" value="#6366f1" style="width: 40px; height: 40px; border: none; cursor: pointer;">
+                <button id="clear-canvas" class="btn-ghost" title="Clear">🗑️</button>
+            </div>
+            
+            <!-- Session Controls -->
+            <div class="control-group flex gap-sm">
+                <button id="end-call" class="btn-danger" disabled>
+                    ⏹️ <span data-i18n="meeting.endCall">End Call</span>
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Participants Sidebar -->
+    <aside class="participants-sidebar panel" style="margin-top: 1rem;">
+        <h3 class="mb-2">👥 Participants (<span id="participant-count">0</span>)</h3>
+        <div id="participants-list"></div>
+    </aside>
+</div>
+
+<style>
+/* ============================================================================
+   VIDEO COMPONENTS - Base styles (moved from main.css for meeting-specific use)
+   ============================================================================ */
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-md);
+}
+
+.video-container {
+    position: relative;
+    background: #000;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    border: 2px solid var(--border);
+}
+
+.video-container.local { border-color: var(--primary); }
+.video-container.remote { border-color: var(--success); }
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 0.75rem var(--space-md);
+    color: white;
+    font-weight: 500;
+}
+
+/* Control groups */
+.control-group {
+    padding: 0.5rem;
+    background: var(--surface-light);
+    border-radius: var(--radius-md);
+}
+
+/* Responsive - video grid */
+@media (max-width: 768px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   MEETING-SPECIFIC STYLES
+   ============================================================================ */
+
+.meeting-container {
+    max-width: 100%;
+}
+
+.meeting-content {
+    position: relative;
+    min-height: 600px;
+}
+
+.video-section, .map-section {
+    transition: opacity 0.3s;
+}
+
+.meeting-controls button {
+    min-width: 120px;
+}
+
+.participants-sidebar {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.participant-item {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--surface-light);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.participant-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+/**
+ * Meeting page functionality
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+/**
+ * Meeting Page - Collaborative Video/Map/Canvas Experience
+ * Integrates WebRTC, MapLibre, and Canvas Drawing
+ */
+
+let meeting = {
+    roomId: null,
+    participants: new Set(),
+    currentView: 'video',  // video, map
+    canvasEnabled: false,
+    mapInitialized: false
+};
+
+// Initialize when page loads
+document.addEventListener('bunz:loaded', (e) => {
+    if (!document.getElementById('video-grid')) return;
+    
+    initializeMeeting();
+});
+
+async function initializeMeeting() {
+    // Get room ID from URL
+    const path = window.location.pathname;
+    const match = path.match(/\/meeting\/(.+)/);
+    meeting.roomId = match ? match[1] : 'default';
+    
+    console.log(`🎥 Initializing meeting: ${meeting.roomId}`);
+    
+    // Load required modules
+    await loadMeetingModules();
+    
+    // Setup WebRTC
+    setupWebRTC();
+    
+    // Setup controls
+    setupMeetingControls();
+    
+    // Setup canvas message handlers
+    setupCanvasHandlers();
+}
+
+/**
+ * Load required modules dynamically
+ */
+async function loadMeetingModules() {
+    // Ensure WebRTC module is loaded
+    if (!window.bunzWebRTC && window.bunzLoader) {
+        await bunzLoader.load('webrtc');
+    }
+}
+
+/**
+ * Setup WebRTC with callbacks
+ */
+function setupWebRTC() {
+    if (!window.bunzWebRTC) {
+        console.error('bunzWebRTC not loaded');
+        return;
+    }
+    
+    bunzWebRTC.init(meeting.roomId, {
+        onLocalStream: (stream) => {
+            console.log('✅ Got local stream');
+            const video = document.getElementById('local-video');
+            if (video) {
+                video.srcObject = stream;
+            }
+        },
+        
+        onRemoteStream: (peerId, stream) => {
+            console.log(`✅ Got remote stream from ${peerId}`);
+            addRemoteVideo(peerId, stream);
+            meeting.participants.add(peerId);
+            updateParticipantsList();
+        },
+        
+        onRemoteStreamRemoved: (peerId) => {
+            console.log(`❌ Remote stream removed: ${peerId}`);
+            removeRemoteVideo(peerId);
+            meeting.participants.delete(peerId);
+            updateParticipantsList();
+        },
+        
+        onPeerJoined: (peerId) => {
+            meeting.participants.add(peerId);
+            updateParticipantsList();
+        },
+        
+        onPeerLeft: (peerId) => {
+            meeting.participants.delete(peerId);
+            updateParticipantsList();
+            if (window.bunzMap) {
+                bunzMap.removeAvatar(peerId);
+            }
+        },
+        
+        onError: (error) => {
+            console.error('WebRTC error:', error);
+            if (window.bunzToast) {
+                bunzToast.error('Media error: ' + error.message);
+            }
+        }
+    });
+}
+
+/**
+ * Setup meeting controls
+ */
+function setupMeetingControls() {
+    // Start call
+    document.getElementById('start-call')?.addEventListener('click', async () => {
+        try {
+            await bunzWebRTC.startLocalMedia();
+            
+            // Enable controls
+            document.getElementById('toggle-video').disabled = false;
+            document.getElementById('toggle-audio').disabled = false;
+            document.getElementById('share-screen').disabled = false;
+            document.getElementById('end-call').disabled = false;
+            document.getElementById('start-call').disabled = true;
+            
+            if (window.bunzToast) {
+                bunzToast.success('Call started!');
+            }
+        } catch (error) {
+            console.error('Failed to start call:', error);
+            if (window.bunzToast) {
+                bunzToast.error('Failed to access camera/microphone');
+            }
+        }
+    });
+    
+    // Toggle video
+    document.getElementById('toggle-video')?.addEventListener('click', () => {
+        const enabled = bunzWebRTC.toggleVideo();
+        const btn = document.getElementById('toggle-video');
+        btn.innerHTML = enabled ? '📹 Video On' : '📹 Video Off';
+        btn.classList.toggle('muted', !enabled);
+    });
+    
+    // Toggle audio
+    document.getElementById('toggle-audio')?.addEventListener('click', () => {
+        const enabled = bunzWebRTC.toggleAudio();
+        const btn = document.getElementById('toggle-audio');
+        btn.innerHTML = enabled ? '🎤 Audio On' : '🎤 Audio Off';
+        btn.classList.toggle('muted', !enabled);
+    });
+    
+    // Share screen
+    document.getElementById('share-screen')?.addEventListener('click', async () => {
+        try {
+            if (!bunzWebRTC.screenStream) {
+                await bunzWebRTC.startScreenShare();
+                document.getElementById('share-screen').innerHTML = '⏹️ Stop Sharing';
+            } else {
+                bunzWebRTC.stopScreenShare();
+                document.getElementById('share-screen').innerHTML = '🖥️ Share Screen';
+            }
+        } catch (error) {
+            console.error('Screen share error:', error);
+        }
+    });
+    
+    // End call
+    document.getElementById('end-call')?.addEventListener('click', () => {
+        bunzWebRTC.cleanup();
+        document.getElementById('start-call').disabled = false;
+        document.getElementById('toggle-video').disabled = true;
+        document.getElementById('toggle-audio').disabled = true;
+        document.getElementById('share-screen').disabled = true;
+        document.getElementById('end-call').disabled = true;
+        
+        // Clear video grid
+        const grid = document.getElementById('video-grid');
+        grid.innerHTML = `
+            <div class="video-container local" id="local-video-container">
+                <video id="local-video" autoplay muted playsinline></video>
+                <div class="video-label">You (Local)</div>
+            </div>
+        `;
+    });
+    
+    // Toggle view (Video/Map)
+    document.getElementById('toggle-view')?.addEventListener('click', () => {
+        toggleView();
+    });
+    
+    // Toggle map
+    document.getElementById('toggle-map')?.addEventListener('click', async () => {
+        if (meeting.currentView === 'map') {
+            showVideoView();
+        } else {
+            await showMapView();
+        }
+    });
+    
+    // Toggle canvas
+    document.getElementById('toggle-canvas')?.addEventListener('click', () => {
+        meeting.canvasEnabled = !meeting.canvasEnabled;
+        const drawingControls = document.getElementById('drawing-controls');
+        
+        if (meeting.canvasEnabled) {
+            // Show drawing controls
+            if (drawingControls) drawingControls.style.display = 'flex';
+            
+            // Create canvas on current view
+            if (!window.bunzCanvas) return;
+            
+            const target = meeting.currentView === 'map' 
+                ? '#meeting-map' 
+                : '#local-video-container';
+            
+            bunzCanvas.createCanvas(target, { enabled: true, zIndex: 10 });
+            bunzCanvas.show();
+            
+            if (window.bunzToast) {
+                bunzToast.info('Drawing enabled - click and drag to draw');
+            }
+        } else {
+            // Hide drawing controls
+            if (drawingControls) drawingControls.style.display = 'none';
+            if (window.bunzCanvas) bunzCanvas.hide();
+        }
+    });
+    
+    // Drawing tool selection
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tool = btn.getAttribute('data-tool');
+            if (window.bunzCanvas) {
+                bunzCanvas.setTool(tool);
+            }
+            
+            // Update active state
+            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+    
+    // Color picker
+    document.getElementById('canvas-color')?.addEventListener('change', (e) => {
+        if (window.bunzCanvas) {
+            bunzCanvas.setColor(e.target.value);
+        }
+    });
+    
+    // Clear canvas
+    document.getElementById('clear-canvas')?.addEventListener('click', () => {
+        if (window.bunzCanvas) {
+            bunzCanvas.clear();
+        }
+    });
+}
+
+/**
+ * Add remote video to grid
+ */
+function addRemoteVideo(peerId, stream) {
+    const grid = document.getElementById('video-grid');
+    if (!grid) return;
+    
+    // Check if already exists
+    if (document.getElementById(`remote-video-${peerId}`)) {
+        const video = document.getElementById(`remote-video-${peerId}`);
+        video.srcObject = stream;
+        return;
+    }
+    
+    // Create video container
+    const container = document.createElement('div');
+    container.className = 'video-container remote';
+    container.id = `remote-container-${peerId}`;
+    container.innerHTML = `
+        <video id="remote-video-${peerId}" autoplay playsinline></video>
+        <div class="video-label">${peerId.substring(0, 8)}</div>
+        <div id="remote-canvas-${peerId}" style="position: relative; width: 100%; height: 100%;"></div>
+    `;
+    
+    grid.appendChild(container);
+    
+    // Set stream
+    const video = document.getElementById(`remote-video-${peerId}`);
+    video.srcObject = stream;
+}
+
+/**
+ * Remove remote video
+ */
+function removeRemoteVideo(peerId) {
+    const container = document.getElementById(`remote-container-${peerId}`);
+    if (container) {
+        container.remove();
+    }
+}
+
+/**
+ * Show map view
+ */
+async function showMapView() {
+    if (!meeting.mapInitialized) {
+        // Load map module
+        if (!window.bunzMap && window.bunzLoader) {
+            await bunzLoader.load('map');
+        }
+        
+        // Initialize map
+        if (window.bunzMap) {
+            await bunzMap.init('meeting-map', {
+                center: [10.7522, 59.9139],
+                zoom: 12
+            });
+            meeting.mapInitialized = true;
+            
+            // Setup map message handlers
+            setupMapHandlers();
+        }
+    }
+    
+    // Switch view
+    document.getElementById('video-section').style.display = 'none';
+    document.getElementById('map-section').style.display = 'block';
+    meeting.currentView = 'map';
+    
+    document.getElementById('toggle-map').innerHTML = '📹 Video';
+    
+    // If canvas is enabled, recreate on map
+    if (meeting.canvasEnabled && window.bunzCanvas) {
+        bunzCanvas.createCanvas('#meeting-map', { enabled: true, zIndex: 10 });
+        bunzCanvas.show();
+    }
+}
+
+/**
+ * Show video view
+ */
+function showVideoView() {
+    document.getElementById('video-section').style.display = 'block';
+    document.getElementById('map-section').style.display = 'none';
+    meeting.currentView = 'video';
+    
+    document.getElementById('toggle-map').innerHTML = '🗺️ Map';
+    
+    // If canvas is enabled, recreate on video
+    if (meeting.canvasEnabled && window.bunzCanvas) {
+        bunzCanvas.createCanvas('#local-video-container', { enabled: true, zIndex: 10 });
+        bunzCanvas.show();
+    }
+}
+
+/**
+ * Setup map message handlers
+ */
+function setupMapHandlers() {
+    // Listen for remote avatar positions
+    document.addEventListener('bunz:ws-message', (e) => {
+        const data = e.detail.data;
+        
+        if (data.type === 'avatar-position') {
+            if (window.bunzMap) {
+                bunzMap.addAvatar(data.userId, data.lng, data.lat, {
+                    label: data.userId.substring(0, 2).toUpperCase(),
+                    name: `User ${data.userId.substring(0, 8)}`
+                });
+            }
+        }
+    });
+}
+
+/**
+ * Setup canvas message handlers
+ */
+function setupCanvasHandlers() {
+    // Listen for remote drawing
+    document.addEventListener('bunz:ws-message', (e) => {
+        const data = e.detail.data;
+        
+        if (data.type === 'canvas-draw' && window.bunzCanvas) {
+            bunzCanvas.handleRemoteDrawing(data);
+        }
+        
+        if (data.type === 'canvas-clear' && window.bunzCanvas) {
+            bunzCanvas.ctx?.clearRect(0, 0, bunzCanvas.canvas.width, bunzCanvas.canvas.height);
+            bunzCanvas.drawingHistory = [];
+        }
+    });
+}
+
+/**
+ * Update participants list
+ */
+function updateParticipantsList() {
+    const list = document.getElementById('participants-list');
+    const count = document.getElementById('participant-count');
+    
+    if (!list) return;
+    
+    // Update count
+    if (count) {
+        count.textContent = meeting.participants.size + 1; // +1 for self
+    }
+    
+    // Render list
+    const participantsHtml = Array.from(meeting.participants).map(peerId => `
+        <div class="participant-item">
+            <div class="participant-avatar">${peerId.substring(0, 2).toUpperCase()}</div>
+            <div>
+                <div style="font-weight: 500;">User ${peerId.substring(0, 8)}</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Connected</div>
+            </div>
+        </div>
+    `).join('');
+    
+    list.innerHTML = `
+        <div class="participant-item" style="border: 2px solid var(--primary);">
+            <div class="participant-avatar" style="background: var(--tertiary);">ME</div>
+            <div>
+                <div style="font-weight: 500;">You</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Host</div>
+            </div>
+        </div>
+        ${participantsHtml}
+    `;
+}
+
+// Cleanup on page unload
+document.addEventListener('bunz:beforeSwap', () => {
+    if (window.bunzWebRTC) {
+        bunzWebRTC.cleanup();
+    }
+    if (window.bunzMap) {
+        bunzMap.destroy();
+    }
+});
+
+console.log('✅ Meeting page initialized');
+
+</script>

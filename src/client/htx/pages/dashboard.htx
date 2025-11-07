@@ -1,0 +1,266 @@
+<!--
+@route: /dashboard
+@guards: requireAuth
+@title: Dashboard - Video Conferencing
+-->
+<!-- Dashboard Content -->
+<header class="flex flex-between mb-4">
+    <div>
+        <h1 data-i18n="dashboard.title">Dashboard</h1>
+        <p class="text-muted" data-i18n="dashboard.subtitle">Manage your organizations, teams, projects, and meetings</p>
+    </div>
+</header>
+
+<!-- Organizations -->
+<section class="mb-4">
+    <div class="flex flex-between mb-3">
+        <h2 data-i18n="dashboard.organizations">Organizations</h2>
+        <button class="btn-primary" id="create-org-btn"><span data-i18n="dashboard.createOrganization">+ Create Organization</span></button>
+    </div>
+    <div id="organizations-list" class="grid">
+        <!-- Organizations will be loaded here - no flash text -->
+    </div>
+</section>
+
+<!-- Quick Actions -->
+<section class="mb-4">
+    <h2 class="mb-3" data-i18n="dashboard.quickActions">Quick Actions</h2>
+    <div class="grid">
+        <a href="/" class="card">
+            <h3><span data-i18n="dashboard.startVideoMeeting">🎥 Start Video Meeting</span></h3>
+            <p class="text-muted" data-i18n="dashboard.startVideoMeetingDesc">Join or create a video conference room</p>
+        </a>
+        <div class="card" id="schedule-meeting-btn" role="button" tabindex="0">
+            <h3><span data-i18n="dashboard.scheduleMeeting">📅 Schedule Meeting</span></h3>
+            <p class="text-muted" data-i18n="dashboard.scheduleMeetingDesc">Plan a meeting for later</p>
+        </div>
+        <div class="card" id="create-project-btn" role="button" tabindex="0">
+            <h3><span data-i18n="dashboard.createProject">🚀 Create Project</span></h3>
+            <p class="text-muted" data-i18n="dashboard.createProjectDesc">Start a new project</p>
+        </div>
+        <div class="card" onclick="bunzCookies.resetConsent()" role="button" tabindex="0">
+            <h3><span data-i18n="dashboard.cookiePreferences">🍪 Cookie Preferences</span></h3>
+            <p class="text-muted" data-i18n="dashboard.cookiePreferencesDesc">Manage your cookie consent settings</p>
+        </div>
+    </div>
+</section>
+
+<!-- Create Organization Modal -->
+<div id="create-org-modal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" data-action="close-org-modal" aria-label="Close">&times;</button>
+        <div class="modal-body">
+            <h3 class="mb-3" data-i18n="dashboard.createOrganizationModal">Create Organization</h3>
+            <form id="create-org-form" method="POST" action="#">
+                <div class="form-group">
+                    <label for="org-name" data-i18n="dashboard.organizationName">Organization Name</label>
+                    <input type="text" id="org-name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="org-slug" data-i18n="dashboard.urlSlug">URL Slug</label>
+                    <input type="text" id="org-slug" name="slug" required pattern="[a-z0-9-]+">
+                </div>
+                <div class="form-group">
+                    <label for="org-description" data-i18n="dashboard.description">Description</label>
+                    <textarea id="org-description" name="description"></textarea>
+                </div>
+                <button type="submit" class="btn-primary full-width" data-i18n="dashboard.create">Create</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * Dashboard Page Scripts
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+
+let currentUser = null;
+
+// Initialize dashboard when loaded
+document.addEventListener('bunz:loaded', (e) => {
+    if (!document.getElementById('organizations-list')) return;
+    
+    initializeDashboard();
+});
+
+async function initializeDashboard() {
+    // Load user data
+    await loadCurrentUser();
+    
+    // Load organizations
+    await loadOrganizations();
+    
+    // Setup event listeners
+    setupDashboardListeners();
+}
+
+async function loadCurrentUser() {
+    try {
+        const response = await fetch('/api/me', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            // Not authenticated, open login modal
+            openModal('pages/login.htx');
+            return;
+        }
+        
+        currentUser = await response.json();
+        
+    } catch (error) {
+        console.error('Error loading user:', error);
+        openModal('pages/login.htx');
+    }
+}
+
+async function loadOrganizations() {
+    const container = document.getElementById('organizations-list');
+    
+    // Check if organizations are already SSR'd (pre-rendered)
+    if (container.children.length > 0) {
+        console.log('✅ Organizations already SSR\'d, skipping fetch');
+        return;
+    }
+    
+    // Only fetch if not pre-rendered (e.g., after client-side navigation)
+    try {
+        const response = await fetch('/api/organizations', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load organizations');
+        }
+        
+        const orgs = await response.json();
+        
+        if (orgs.length === 0) {
+            const t = window.t || ((key) => key.split('.').pop());
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3 data-i18n="dashboard.noOrganizations">${t('dashboard.noOrganizations')}</h3>
+                    <p data-i18n="dashboard.getStarted">${t('dashboard.getStarted')}</p>
+                    <button onclick="showCreateOrgModal()" class="btn-primary">
+                        <span data-i18n="dashboard.createOrganization">+ ${t('dashboard.createOrganization')}</span>
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        // TODO: Convert to atom template (organization-card.htx)
+        container.innerHTML = orgs.map(org => `
+            <div class="card" onclick="navigateTo('/org/${org.id}')">
+                <h3>🏢 ${org.name}</h3>
+                <p style="color: var(--text-secondary);">/${org.slug}</p>
+                <p style="margin-top: 0.5rem;">
+                    Created ${new Date(org.createdAt).toLocaleDateString()}
+                </p>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading organizations:', error);
+        // TODO: Convert to atom template
+        container.innerHTML = `
+            <div class="error-message">
+                Failed to load organizations
+            </div>
+        `;
+    }
+}
+
+function setupDashboardListeners() {
+    // Create org button
+    const createOrgBtn = document.getElementById('create-org-btn');
+    if (createOrgBtn) {
+        createOrgBtn.addEventListener('click', showCreateOrgModal);
+    }
+    
+    // Create org form
+    const createOrgForm = document.getElementById('create-org-form');
+    if (createOrgForm) {
+        createOrgForm.addEventListener('submit', handleCreateOrg);
+    }
+    
+    // Auto-generate slug from name
+    const orgNameInput = document.getElementById('org-name');
+    const orgSlugInput = document.getElementById('org-slug');
+    if (orgNameInput && orgSlugInput) {
+        orgNameInput.addEventListener('input', (e) => {
+            const slug = e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+            orgSlugInput.value = slug;
+        });
+    }
+}
+
+function showCreateOrgModal() {
+    const modal = document.getElementById('create-org-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeOrgModal() {
+    const modal = document.getElementById('create-org-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Handle modal close button
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="close-org-modal"]')) {
+        closeOrgModal();
+    }
+});
+
+async function handleCreateOrg(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = {
+        name: formData.get('name'),
+        slug: formData.get('slug'),
+        description: formData.get('description')
+    };
+    
+    try {
+        const response = await fetch('/api/organizations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            alert(error.error || 'Failed to create organization');
+            return;
+        }
+        
+        // Close modal
+        closeOrgModal();
+        
+        // Reload organizations
+        await loadOrganizations();
+        
+        // Reset form
+        form.reset();
+        
+    } catch (error) {
+        console.error('Error creating organization:', error);
+        alert('An error occurred while creating the organization');
+    }
+}
+
+// Make functions available globally
+window.showCreateOrgModal = showCreateOrgModal;
+</script>

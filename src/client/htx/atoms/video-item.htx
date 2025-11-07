@@ -1,0 +1,17 @@
+<!-- Video Item Atom -->
+<!-- Micro-template for remote video participant -->
+<div class="video-container remote" id="video-{peerId}">
+    <video 
+        autoplay 
+        playsinline 
+        webkit-playsinline 
+        x-webkit-airplay="deny"
+        disablePictureInPicture
+        controls="false"
+    ></video>
+    <div class="video-label">{userName}</div>
+    <button class="presenter-btn" data-peer-id="{peerId}" data-i18n="room.makePresenter">
+        📡 <span>Make Presenter</span>
+    </button>
+</div>
+

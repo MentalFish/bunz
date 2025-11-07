@@ -1,0 +1,181 @@
+<!-- Toast Notification Component -->
+<!-- @template: single toast item -->
+<style>
+.toast-container {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 600px;
+    width: 90%;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: all;
+}
+
+.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-hide {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.toast-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-message {
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.toast-message a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.toast-message a:hover {
+    text-decoration: underline;
+}
+
+.toast-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.toast-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.toast-btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.toast-btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.toast-btn-secondary {
+    background: var(--surface-light);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.toast-btn-secondary:hover {
+    background: var(--border);
+    transform: translateY(-1px);
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: var(--text);
+}
+
+.toast-persistent .toast-close {
+    display: none;
+}
+
+/* Toast types */
+.toast-info {
+    border-left: 4px solid var(--info);
+}
+
+.toast-success {
+    border-left: 4px solid var(--success);
+}
+
+.toast-warning {
+    border-left: 4px solid var(--warning);
+}
+
+.toast-error {
+    border-left: 4px solid var(--danger);
+}
+
+.toast-cookie {
+    border-left: 4px solid var(--warning);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+/* Responsive - mobile optimizations */
+@media (max-width: 768px) {
+    .toast-container {
+        bottom: 1rem;
+        width: 95%;
+    }
+    
+    .toast {
+        padding: 1rem;
+    }
+    
+    .toast-actions {
+        flex-direction: column;
+    }
+    
+    .toast-btn {
+        width: 100%;
+    }
+}
+</style>
+
+<!-- Template for single toast -->
+<div class="toast" data-toast-id="">
+    <div class="toast-icon"></div>
+    <div class="toast-content">
+        <div class="toast-message"></div>
+        <div class="toast-actions" style="display: none;"></div>
+    </div>
+    <button class="toast-close" aria-label="Close">&times;</button>
+</div>
+

@@ -1,0 +1,4 @@
+<!-- Status Message Atom -->
+<!-- Micro-template for status/info messages -->
+<p class="status-message {type}">{message}</p>
+

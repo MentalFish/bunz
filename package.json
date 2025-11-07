@@ -1,0 +1,33 @@
+{
+  "name": "bun-fixi-video-conferencing",
+  "version": "1.0.0",
+  "main": "src/server/main.ts",
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/bun": "latest",
+    "@types/ws": "^8.5.10",
+    "chrome-launcher": "^1.2.1",
+    "lighthouse": "^13.0.1",
+    "playwright": "^1.56.1",
+    "ws": "^8.18.3"
+  },
+  "description": "Bun.js server with BUNZ HTML-first framework and WebRTC video conferencing",
+  "scripts": {
+    "dev": "bun --watch src/server/main.ts",
+    "start": "NODE_ENV=production bun src/server/main.ts",
+    "start:dev": "bun --watch src/server/main.ts",
+    "start:test": "NODE_ENV=test bun src/server/main.ts",
+    "seed": "bun src/server/tools/seed.ts",
+    "seed:test": "NODE_ENV=test bun src/server/tools/seed.ts",
+    "bundle": "bun src/server/tools/bundle.ts",
+    "minify": "bun src/server/tools/minify.ts",
+    "build": "bun run bundle && bun run minify",
+    "test": "NODE_ENV=test bun run tests/run-all.ts",
+    "test:api": "NODE_ENV=test bun test tests/api",
+    "test:e2e": "NODE_ENV=test bunx playwright test",
+    "test:lighthouse": "NODE_ENV=test bun run tests/performance/lighthouse.test.ts",
+    "test:ui": "NODE_ENV=test bunx playwright test --ui",
+    "test:report": "bunx playwright show-report test-results/playwright-report"
+  },
+  "type": "module"
+}

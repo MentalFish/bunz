@@ -1,0 +1,122 @@
+<!--
+@title: Map - BUNZ Conference
+@description: Interactive map with MapLibre
+-->
+<div class="map-page">
+    <header class="mb-3">
+        <h1>Interactive Map</h1>
+        <p class="text-muted">Explore the map powered by MapLibre GL</p>
+    </header>
+    
+    <div id="map-container" style="width: 100%; height: 600px; border-radius: var(--radius-md); overflow: hidden;"></div>
+    
+    <div class="map-controls mt-3">
+        <button id="reset-view-btn" class="btn-secondary">Reset View</button>
+        <button id="toggle-3d-btn" class="btn-secondary">Toggle 3D</button>
+    </div>
+</div>
+
+<style>
+.map-page {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.map-controls {
+    display: flex;
+    gap: var(--space-md);
+}
+
+#map-container {
+    box-shadow: var(--shadow-md);
+}
+</style>
+
+<script>
+let mapInstance = null;
+let is3D = false;
+
+// Initialize map when page loads
+async function initMapPage() {
+    console.log('🗺️ Initializing map page...');
+    
+    // Load MapLibre module
+    if (!window.bunzMap) {
+        if (window.bunzLoader) {
+            await window.bunzLoader.load('map');
+        } else {
+            console.error('bunzLoader not available');
+            return;
+        }
+    }
+    
+    // Wait for bunzMap to be available
+    let retries = 0;
+    while (!window.bunzMap && retries < 20) {
+        await new Promise(r => setTimeout(r, 100));
+        retries++;
+    }
+    
+    if (!window.bunzMap) {
+        console.error('MapLibre module failed to load');
+        return;
+    }
+    
+    // Initialize the map
+    mapInstance = await window.bunzMap.init('map-container', {
+        center: [10.7522, 59.9139], // Oslo, Norway
+        zoom: 12,
+        pitch: 0
+    });
+    
+    console.log('✅ Map initialized');
+    
+    // Setup controls
+    setupMapControls();
+}
+
+function setupMapControls() {
+    const resetBtn = document.getElementById('reset-view-btn');
+    const toggle3dBtn = document.getElementById('toggle-3d-btn');
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (mapInstance?.map) {
+                mapInstance.map.flyTo({
+                    center: [10.7522, 59.9139],
+                    zoom: 12,
+                    pitch: 0,
+                    bearing: 0
+                });
+            }
+        });
+    }
+    
+    if (toggle3dBtn) {
+        toggle3dBtn.addEventListener('click', () => {
+            if (mapInstance?.map) {
+                is3D = !is3D;
+                mapInstance.map.easeTo({
+                    pitch: is3D ? 60 : 0,
+                    duration: 1000
+                });
+            }
+        });
+    }
+}
+
+// Listen for page load events
+document.addEventListener('bunz:loaded', (e) => {
+    if (document.getElementById('map-container')) {
+        initMapPage();
+    }
+});
+
+// Initialize if already on page
+if (document.getElementById('map-container')) {
+    initMapPage();
+}
+
+console.log('✅ Map page script loaded');
+</script>
+

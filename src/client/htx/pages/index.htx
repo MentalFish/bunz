@@ -1,0 +1,84 @@
+<!--
+@route: /
+@title: Home - Video Conferencing
+-->
+<!-- Home Page Content -->
+<header class="text-center mt-4">
+    <h1 class="gradient-text" data-i18n="home.title">Welcome to BUNZ Conferencing</h1>
+    <p class="text-muted text-lg" data-i18n="home.subtitle">
+        Built with Bun.js, BUNZ Framework, and WebRTC
+    </p>
+</header>
+
+    <section class="text-center mt-4 mb-4">
+        <h2 data-i18n="home.sectionTitle">The HTML-First Framework</h2>
+        <p class="text-muted mb-3" data-i18n="home.sectionSubtitle">Pure HTML components that load dynamically when and where needed</p>
+        <div class="flex flex-center gap-md flex-wrap">
+            <a href="/room/lobby" class="btn-primary btn-lg">
+                🚀 <span data-i18n="home.startMeeting">Start Meeting</span>
+            </a>
+            <a href="/dashboard" class="btn-secondary btn-lg">
+                📊 <span data-i18n="home.goToDashboard">Go to Dashboard</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="mt-4 mb-4">
+        <h3 class="text-center mb-3" data-i18n="home.featuresTitle">Features</h3>
+        <div class="grid">
+            <div class="card">
+                <h3>🎥 <span data-i18n="home.feature1Title">WebRTC Video</span></h3>
+                <p class="text-muted" data-i18n="home.feature1Desc">Peer-to-peer video conferencing with high quality streams</p>
+            </div>
+            <div class="card">
+                <h3>📦 <span data-i18n="home.feature2Title">BUNZ Framework</span></h3>
+                <p class="text-muted" data-i18n="home.feature2Desc">Dynamic HTML loading - HTML-first architecture</p>
+            </div>
+            <div class="card">
+                <h3>⚡ <span data-i18n="home.feature3Title">Bun.js Server</span></h3>
+                <p class="text-muted" data-i18n="home.feature3Desc">Lightning fast server with native TypeScript support</p>
+            </div>
+            <div class="card">
+                <h3>🔐 <span data-i18n="home.feature4Title">Authentication</span></h3>
+                <p class="text-muted" data-i18n="home.feature4Desc">Secure user authentication with bcrypt</p>
+            </div>
+            <div class="card">
+                <h3>🏢 <span data-i18n="home.feature5Title">Organizations</span></h3>
+                <p class="text-muted" data-i18n="home.feature5Desc">Manage teams, projects, and meetings</p>
+            </div>
+            <div class="card">
+                <h3>🚀 <span data-i18n="home.feature6Title">No Build Step</span></h3>
+                <p class="text-muted" data-i18n="home.feature6Desc">Pure HTML components, no compilation needed</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel text-center mt-4 mb-4">
+        <h3 class="mb-2" data-i18n="home.ctaTitle">Ready to get started?</h3>
+        <p class="text-muted mb-3" data-i18n="home.ctaSubtitle">Create an account or start an instant meeting</p>
+        <div class="flex flex-center gap-md flex-wrap">
+            <button data-action="open-signup-modal" class="btn-primary" data-i18n="home.signupFree">Sign Up Free</button>
+            <a href="/room/instant" class="btn-secondary" data-i18n="home.quickMeeting">Quick Meeting</a>
+        </div>
+    </section>
+
+<footer class="text-center text-muted mt-4 pt-4 border-top">
+    <p data-i18n="home.footerText">Built with <strong>BUNZ</strong> and <strong>WebRTC</strong></p>
+    <p class="mt-1" data-i18n="home.footerTagline">HTML that loads when you need it, where you need it 🚀</p>
+</footer>
+
+<script>
+/**
+ * Index page functionality
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+
+// Handle signup modal button
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="open-signup-modal"]')) {
+        if (window.openModal) {
+            window.openModal('pages/login.htx');
+        }
+    }
+});
+</script>

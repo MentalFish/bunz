@@ -1,0 +1,480 @@
+<!--
+@route: /telemetry
+@title: Telemetry Dashboard - BUNZ
+-->
+<!-- Telemetry Dashboard -->
+<div class="telemetry-dashboard">
+    <header class="mb-4">
+        <h1>📊 Telemetry Dashboard</h1>
+        <p class="text-muted">Real-time monitoring of BUNZ server operations</p>
+    </header>
+
+    <!-- Controls -->
+    <section class="panel mb-3 flex flex-between" style="align-items: center;">
+        <div class="flex gap-md">
+            <button id="refresh-metrics" class="btn-primary btn-sm">🔄 Refresh</button>
+            <button id="auto-refresh-toggle" class="btn-secondary btn-sm">⏸️ Auto-refresh: ON</button>
+        </div>
+        <div class="text-muted" style="font-size: 0.85rem;">
+            Last updated: <span id="last-updated">Never</span>
+        </div>
+    </section>
+
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+        <!-- System Metrics -->
+        <section class="panel metric-card">
+            <h3>🖥️ System</h3>
+            <div class="metric-row">
+                <span class="metric-label">Uptime</span>
+                <span class="metric-value" id="uptime">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Memory Used</span>
+                <span class="metric-value" id="memory-used">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Memory Total</span>
+                <span class="metric-value" id="memory-total">-</span>
+            </div>
+        </section>
+
+        <!-- HTTP Metrics -->
+        <section class="panel metric-card">
+            <h3>🌐 HTTP Requests</h3>
+            <div class="metric-row">
+                <span class="metric-label">Total Requests</span>
+                <span class="metric-value" id="http-total">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg Response Time</span>
+                <span class="metric-value" id="http-avg-time">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">By Status</span>
+                <span class="metric-value" id="http-by-status">-</span>
+            </div>
+        </section>
+
+        <!-- WebSocket Metrics -->
+        <section class="panel metric-card">
+            <h3>🔌 WebSockets</h3>
+            <div class="metric-row">
+                <span class="metric-label">Total Connections</span>
+                <span class="metric-value" id="ws-total">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Active Now</span>
+                <span class="metric-value" id="ws-active">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Total Messages</span>
+                <span class="metric-value" id="ws-messages">-</span>
+            </div>
+        </section>
+
+        <!-- Database Metrics -->
+        <section class="panel metric-card">
+            <h3>💾 Database</h3>
+            <div class="metric-row">
+                <span class="metric-label">Total Queries</span>
+                <span class="metric-value" id="db-total">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg Query Time</span>
+                <span class="metric-value" id="db-avg-time">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Slowest Query</span>
+                <span class="metric-value" id="db-slowest">-</span>
+            </div>
+        </section>
+
+        <!-- Error Metrics -->
+        <section class="panel metric-card">
+            <h3>⚠️ Errors</h3>
+            <div class="metric-row">
+                <span class="metric-label">Total Errors</span>
+                <span class="metric-value" id="errors-total">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Recent Errors</span>
+                <span class="metric-value" id="errors-recent">-</span>
+            </div>
+        </section>
+
+        <!-- Custom Events -->
+        <section class="panel metric-card">
+            <h3>📌 Events</h3>
+            <div id="custom-events">
+                <p class="text-muted">No events tracked yet</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Top Paths -->
+    <section class="panel mt-3">
+        <h3 class="mb-3">🔝 Top Request Paths</h3>
+        <div id="top-paths">
+            <p class="text-muted">No data yet</p>
+        </div>
+    </section>
+
+    <!-- Recent Errors -->
+    <section class="panel mt-3">
+        <h3 class="mb-3">🐛 Recent Errors</h3>
+        <div id="recent-errors">
+            <p class="text-muted">No errors (that's good!)</p>
+        </div>
+    </section>
+</div>
+
+<style>
+.telemetry-dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.metric-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--primary);
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.metric-row:last-child {
+    border-bottom: none;
+}
+
+.metric-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.metric-value.warning {
+    color: var(--warning);
+}
+
+.metric-value.danger {
+    color: var(--danger);
+}
+
+.metric-value.success {
+    color: var(--success);
+}
+
+#custom-events {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#top-paths table,
+#recent-errors table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#top-paths td,
+#recent-errors td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.error-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--surface-light);
+    border-left: 3px solid var(--danger);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.error-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+/**
+ * Telemetry Dashboard - Real-time metrics display
+ * Self-contained in HTX file (HTML-first architecture)
+ */
+
+let autoRefresh = true;
+let refreshInterval = null;
+
+// Initialize when page loads
+document.addEventListener('bunz:loaded', (e) => {
+    if (!document.getElementById('refresh-metrics')) return;
+    
+    initializeTelemetry();
+});
+
+function initializeTelemetry() {
+    console.log('📊 Initializing telemetry dashboard');
+    
+    // Load initial metrics
+    loadMetrics();
+    
+    // Setup controls
+    document.getElementById('refresh-metrics')?.addEventListener('click', loadMetrics);
+    
+    document.getElementById('auto-refresh-toggle')?.addEventListener('click', () => {
+        autoRefresh = !autoRefresh;
+        const btn = document.getElementById('auto-refresh-toggle');
+        
+        if (autoRefresh) {
+            // TODO: Convert to text content update, not innerHTML
+            btn.innerHTML = '⏸️ Auto-refresh: ON';
+            startAutoRefresh();
+        } else {
+            btn.innerHTML = '▶️ Auto-refresh: OFF';
+            stopAutoRefresh();
+        }
+    });
+    
+    // Start auto-refresh
+    startAutoRefresh();
+}
+
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    
+    refreshInterval = setInterval(() => {
+        if (autoRefresh) {
+            loadMetrics();
+        }
+    }, 5000); // Refresh every 5 seconds
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+}
+
+async function loadMetrics() {
+    try {
+        const response = await fetch('/api/telemetry?format=json');
+        
+        if (!response.ok) {
+            console.error('Failed to load metrics:', response.status);
+            return;
+        }
+        
+        const metrics = await response.json();
+        updateDisplay(metrics);
+        
+        // Update timestamp
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('last-updated').textContent = now;
+        
+    } catch (error) {
+        console.error('Error loading metrics:', error);
+    }
+}
+
+function updateDisplay(metrics) {
+    // System metrics
+    updateSystemMetrics(metrics.system);
+    
+    // HTTP metrics
+    updateHTTPMetrics(metrics.http);
+    
+    // WebSocket metrics
+    updateWebSocketMetrics(metrics.websocket);
+    
+    // Database metrics
+    updateDatabaseMetrics(metrics.database);
+    
+    // Error metrics
+    updateErrorMetrics(metrics.errors);
+    
+    // Custom events
+    updateCustomEvents(metrics.events);
+    
+    // Top paths
+    updateTopPaths(metrics.http.requestsByPath);
+    
+    // Recent errors
+    updateRecentErrors(metrics.errors.recentErrors);
+}
+
+function updateSystemMetrics(system) {
+    // Uptime
+    const uptimeSec = system.uptimeSeconds;
+    const days = Math.floor(uptimeSec / 86400);
+    const hours = Math.floor((uptimeSec % 86400) / 3600);
+    const minutes = Math.floor((uptimeSec % 3600) / 60);
+    const uptimeStr = `${days}d ${hours}h ${minutes}m`;
+    document.getElementById('uptime').textContent = uptimeStr;
+    
+    // Memory
+    const memUsedMB = Math.round(system.memoryUsage.heapUsed / 1024 / 1024);
+    const memTotalMB = Math.round(system.memoryUsage.heapTotal / 1024 / 1024);
+    const memPercent = Math.round((memUsedMB / memTotalMB) * 100);
+    
+    const memUsedEl = document.getElementById('memory-used');
+    memUsedEl.textContent = `${memUsedMB} MB (${memPercent}%)`;
+    memUsedEl.className = 'metric-value';
+    if (memPercent > 80) memUsedEl.classList.add('danger');
+    else if (memPercent > 60) memUsedEl.classList.add('warning');
+    
+    document.getElementById('memory-total').textContent = `${memTotalMB} MB`;
+}
+
+function updateHTTPMetrics(http) {
+    document.getElementById('http-total').textContent = http.totalRequests.toLocaleString();
+    document.getElementById('http-avg-time').textContent = `${http.avgResponseTime.toFixed(2)} ms`;
+    
+    // By status
+    const statusStr = Object.entries(http.requestsByStatus)
+        .map(([status, count]) => `${status}: ${count}`)
+        .join(', ') || 'None';
+    document.getElementById('http-by-status').textContent = statusStr;
+}
+
+function updateWebSocketMetrics(websocket) {
+    document.getElementById('ws-total').textContent = websocket.totalConnections.toLocaleString();
+    
+    const activeEl = document.getElementById('ws-active');
+    activeEl.textContent = websocket.activeConnections.toString();
+    activeEl.className = 'metric-value';
+    if (websocket.activeConnections > 0) activeEl.classList.add('success');
+    
+    document.getElementById('ws-messages').textContent = websocket.totalMessages.toLocaleString();
+}
+
+function updateDatabaseMetrics(database) {
+    document.getElementById('db-total').textContent = database.totalQueries.toLocaleString();
+    document.getElementById('db-avg-time').textContent = `${database.avgQueryTime.toFixed(2)} ms`;
+    
+    // Slowest query
+    if (database.slowestQueries.length > 0) {
+        const slowest = database.slowestQueries[0];
+        const slowestEl = document.getElementById('db-slowest');
+        slowestEl.textContent = `${slowest.duration.toFixed(2)} ms`;
+        slowestEl.className = 'metric-value';
+        if (slowest.duration > 500) slowestEl.classList.add('danger');
+        else if (slowest.duration > 100) slowestEl.classList.add('warning');
+    } else {
+        document.getElementById('db-slowest').textContent = 'N/A';
+    }
+}
+
+function updateErrorMetrics(errors) {
+    const totalEl = document.getElementById('errors-total');
+    totalEl.textContent = errors.total.toString();
+    totalEl.className = 'metric-value';
+    if (errors.total > 0) totalEl.classList.add('warning');
+    
+    document.getElementById('errors-recent').textContent = errors.recentErrors.length.toString();
+}
+
+function updateCustomEvents(events) {
+    const container = document.getElementById('custom-events');
+    
+    if (Object.keys(events).length === 0) {
+        // TODO: Convert to atom template (empty-state.htx already exists!)
+        container.innerHTML = '<p class="text-muted">No events tracked yet</p>';
+        return;
+    }
+    
+    const sortedEvents = Object.entries(events)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    
+    // TODO: Convert to atom template (metric-row.htx)
+    container.innerHTML = sortedEvents
+        .map(([name, count]) => `
+            <div class="metric-row">
+                <span class="metric-label">${name}</span>
+                <span class="metric-value">${count}</span>
+            </div>
+        `).join('');
+}
+
+function updateTopPaths(pathCounts) {
+    const container = document.getElementById('top-paths');
+    
+    if (Object.keys(pathCounts).length === 0) {
+        // TODO: Convert to atom template
+        container.innerHTML = '<p class="text-muted">No data yet</p>';
+        return;
+    }
+    
+    const sortedPaths = Object.entries(pathCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    
+    // TODO: Convert to atom template (path-table.htx)
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Path</th>
+                    <th style="text-align: right;">Requests</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedPaths.map(([path, count]) => `
+                    <tr>
+                        <td><code>${path}</code></td>
+                        <td style="text-align: right;"><strong>${count}</strong></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function updateRecentErrors(recentErrors) {
+    const container = document.getElementById('recent-errors');
+    
+    if (recentErrors.length === 0) {
+        // TODO: Use empty-state.htx component
+        container.innerHTML = '<p class="text-muted">No errors (that\'s good!)</p>';
+        return;
+    }
+    
+    // TODO: Convert to atom template (error-item.htx)
+    container.innerHTML = recentErrors.slice(-10).reverse().map(error => {
+        const date = new Date(error.timestamp);
+        const timeStr = date.toLocaleTimeString();
+        return `
+            <div class="error-item">
+                <div style="font-weight: 600; color: var(--danger);">${error.message}</div>
+                ${error.endpoint ? `<div style="margin-top: 0.25rem;"><code>${error.endpoint}</code></div>` : ''}
+                <div class="error-time">${timeStr}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Cleanup on page unload
+document.addEventListener('bunz:beforeSwap', () => {
+    stopAutoRefresh();
+});
+
+console.log('✅ Telemetry dashboard initialized');
+</script>

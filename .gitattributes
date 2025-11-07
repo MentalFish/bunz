@@ -1,0 +1,34 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force LF for source code
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.htx text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.db binary
+
+# Exclude from Git archive
+.gitattributes export-ignore
+.gitignore export-ignore
+.editorconfig export-ignore
+.prettierrc export-ignore
+.prettierignore export-ignore
+.vscode/ export-ignore
+tests/ export-ignore
+docs/ export-ignore
+

@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+src/client/bunz/min/
+src/client/js/min/
+
+# Database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Test results
+test-results/
+playwright-report/
+coverage/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+

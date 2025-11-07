@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["bun-types"],
+    "paths": {
+      "@server/*": ["./src/server/*"],
+      "@client/*": ["./src/client/*"],
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "src/client/bunz/min",
+    "src/client/js/min"
+  ]
+}
+

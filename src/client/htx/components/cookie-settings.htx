@@ -1,0 +1,81 @@
+<!-- Cookie Settings Component -->
+<!-- @template: cookie preferences modal content -->
+<style>
+.cookie-settings {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.cookie-category {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    background: var(--surface-light);
+}
+
+.cookie-category-header {
+    margin-bottom: 0.5rem;
+}
+
+.cookie-category-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.cookie-category-label input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.cookie-category-label input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.cookie-category-desc {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0.5rem 0 0 2rem;
+}
+
+.cookie-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.badge {
+    background: var(--success);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+</style>
+
+<!-- Template structure -->
+<div class="cookie-settings">
+    <h2>Cookie Preferences</h2>
+    <p class="text-muted">Choose which cookies you want to allow. Necessary cookies cannot be disabled.</p>
+    
+    <div id="cookie-categories">
+        <!-- Categories will be injected here by JavaScript -->
+    </div>
+    
+    <div class="cookie-actions">
+        <button onclick="bunzCookies.saveSettings()" class="btn-primary">
+            Save Preferences
+        </button>
+        <button onclick="closeModal()" class="btn-secondary">
+            Cancel
+        </button>
+    </div>
+</div>
+
